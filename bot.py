@@ -354,9 +354,18 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
         return
 
     if step == "print_material":
+        technology = str(payload.get("technology", ""))
+        material_text_key = {
+            "FDM": "text_select_material_fdm",
+            "Фотополимер": "text_select_material_resin",
+            "Не знаю": "text_select_material_unknown",
+        }.get(technology, "text_select_material")
         await send_step_cb(
             cb,
-            get_cfg("text_select_material", "Выберите материал:"),
+            get_cfg(
+                material_text_key,
+                get_cfg("text_select_material", "Выберите материал:"),
+            ),
             step_keyboard_for_print(payload),
             photo_ref_for("photo_print"),
         )
@@ -504,10 +513,14 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
 
     if step == "about":
         rows: list[list[InlineKeyboardButton]] = []
-        rows.append([InlineKeyboardButton(text=get_cfg("btn_about_equipment", "🏭 Оборудование"), callback_data="about:eq")])
-        rows.append([InlineKeyboardButton(text=get_cfg("btn_about_projects", "🖼 Наши проекты"), callback_data="about:projects")])
-        rows.append([InlineKeyboardButton(text=get_cfg("btn_about_contacts", "📞 Контакты"), callback_data="about:contacts")])
-        rows.append([InlineKeyboardButton(text=get_cfg("btn_about_map", "📍 На карте"), callback_data="about:map")])
+        if cfg_bool("enabled_about_equipment", True):
+            rows.append([InlineKeyboardButton(text=get_cfg("btn_about_equipment", "🏭 Оборудование"), callback_data="about:eq")])
+        if cfg_bool("enabled_about_projects", True):
+            rows.append([InlineKeyboardButton(text=get_cfg("btn_about_projects", "🖼 Наши проекты"), callback_data="about:projects")])
+        if cfg_bool("enabled_about_contacts", True):
+            rows.append([InlineKeyboardButton(text=get_cfg("btn_about_contacts", "📞 Контакты"), callback_data="about:contacts")])
+        if cfg_bool("enabled_about_map", True):
+            rows.append([InlineKeyboardButton(text=get_cfg("btn_about_map", "📍 На карте"), callback_data="about:map")])
         rows.append(nav_row(False))
         await send_step_cb(
             cb,
