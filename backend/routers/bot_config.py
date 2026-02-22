@@ -24,6 +24,9 @@ TEXT_KEYS: list[str] = [
     "btn_print_resin",
     "btn_print_unknown",
     "text_select_material",
+    "text_select_material_fdm",
+    "text_select_material_resin",
+    "text_select_material_unknown",
     "btn_mat_petg",
     "btn_mat_pla",
     "btn_mat_petg_carbon",
@@ -165,7 +168,7 @@ async def get_bot_settings(payload: dict = Depends(verify_token)) -> dict[str, A
 async def update_bot_settings(data: dict[str, Any], payload: dict = Depends(verify_token)) -> dict[str, str]:
     try:
         to_save: dict[str, str] = {}
-        for k in SETTINGS_KEYS:
+        for k in SETTINGS_KEYS + PHOTO_KEYS:
             if k not in (data or {}):
                 continue
             if k in TOGGLE_KEYS:
