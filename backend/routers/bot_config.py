@@ -168,7 +168,7 @@ async def get_bot_settings(payload: dict = Depends(verify_token)) -> dict[str, A
 async def update_bot_settings(data: dict[str, Any], payload: dict = Depends(verify_token)) -> dict[str, str]:
     try:
         to_save: dict[str, str] = {}
-        for k in SETTINGS_KEYS:
+        for k in SETTINGS_KEYS + PHOTO_KEYS:
             if k not in (data or {}):
                 continue
             if k in TOGGLE_KEYS:
