@@ -69,6 +69,15 @@ def photo_ref_for(step_key: str) -> str:
     )
 
 
+def print_photo_ref(payload: dict[str, Any]) -> str:
+    technology = str(payload.get("technology", "")).strip()
+    if technology == "FDM":
+        return photo_ref_for("photo_print_fdm") or photo_ref_for("photo_print")
+    if technology == "Фотополимер":
+        return photo_ref_for("photo_print_resin") or photo_ref_for("photo_print")
+    return photo_ref_for("photo_print")
+
+
 def get_orders_chat_id() -> str:
     return get_cfg("orders_chat_id", getattr(settings, "orders_chat_id", ""))
 
@@ -349,7 +358,7 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
             cb,
             get_cfg("text_print_tech", "🖨 Выберите технологию печати:"),
             kb(rows),
-            photo_ref_for("photo_print"),
+            print_photo_ref(payload),
         )
         return
 
@@ -367,7 +376,7 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
                 get_cfg("text_select_material", "Выберите материал:"),
             ),
             step_keyboard_for_print(payload),
-            photo_ref_for("photo_print"),
+            print_photo_ref(payload),
         )
         return
 
@@ -377,16 +386,24 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
             cb,
             get_cfg("text_describe_material", "Опишите материал/смолу свободным текстом:"),
             kb([nav_row()]),
-            photo_ref_for("photo_print"),
+            print_photo_ref(payload),
         )
         return
 
     if step == "attach_file":
-        rows = [[InlineKeyboardButton(text="❌ У меня нет файла", callback_data="set:file:нет")], nav_row()]
+        is_idea_branch = str(payload.get("branch", "")) == "idea"
+        rows = [nav_row()]
+        if not is_idea_branch:
+            rows.insert(0, [InlineKeyboardButton(text="❌ У меня нет файла", callback_data="set:file:нет")])
+
+        default_text = "Прикрепите STL/3MF/OBJ или фото. Или нажмите кнопку ниже:"
+        if is_idea_branch:
+            default_text = "Прикрепите фото или эскиз для заявки. Без фото отправить не получится."
         await send_step_cb(
             cb,
-            get_cfg("text_attach_file", "Прикрепите STL/3MF/OBJ или фото. Или нажмите кнопку ниже:"),
+            get_cfg("text_attach_file", default_text),
             kb(rows),
+            photo_ref_for("photo_idea") if is_idea_branch else print_photo_ref(payload),
         )
         return
 
@@ -715,8 +732,12 @@ async def on_set(cb: CallbackQuery, state: FSMContext) -> None:
         await render_step(cb, state, "attach_file")
         return
 
-    if field in {"scan_type", "idea_type"}:
+    if field == "scan_type":
         await render_step(cb, state, "review")
+        return
+
+    if field == "idea_type":
+        await render_step(cb, state, "attach_file")
         return
 
     if field == "file":
