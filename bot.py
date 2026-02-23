@@ -393,12 +393,16 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
 
     if step == "attach_file":
         is_idea_branch = str(payload.get("branch", "")) == "idea"
-        skip_label = "⏭ Пропустить фото" if is_idea_branch else "❌ У меня нет файла"
-        rows = [[InlineKeyboardButton(text=skip_label, callback_data="set:file:нет")], nav_row()]
-
+        rows = [nav_row()]
         default_text = "Прикрепите STL/3MF/OBJ или фото. Или нажмите кнопку ниже:"
+
         if is_idea_branch:
+            rows.insert(0, [InlineKeyboardButton(text="⏭ Пропустить фото", callback_data="set:file:нет")])
             default_text = "Прикрепите фото или эскиз для заявки. Или нажмите «Пропустить фото»."
+        else:
+            rows.insert(0, [InlineKeyboardButton(text="❌ У меня нет файла", callback_data="set:file:нет")])
+
+
         await send_step_cb(
             cb,
             get_cfg("text_attach_file", default_text),
