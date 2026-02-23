@@ -16,12 +16,14 @@ import {
   Statistic,
   Table,
   Tag,
+  Grid,
 } from 'antd';
 import { ShoppingCartOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { useBreakpoint } = Grid;
 
 const statusOptions = [
   { value: 'draft', label: 'Черновик' },
@@ -86,6 +88,8 @@ const Orders = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -203,25 +207,25 @@ const Orders = () => {
     <div>
       <h1>Заявки Chel3D</h1>
 
-      <Row gutter={12} style={{ marginBottom: 16 }}>
-        <Col span={8}>
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={24} md={8}>
           <Card>
             <Statistic title='Всего заявок' value={stats.total_orders} prefix={<ShoppingCartOutlined />} />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col xs={24} md={8}>
           <Card>
             <Statistic title='Новых' value={stats.new_orders} prefix={<Badge dot status='processing' />} />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col xs={24} md={8}>
           <Card>
             <Statistic title='Активных' value={stats.active_orders} prefix={<SyncOutlined spin />} />
           </Card>
         </Col>
       </Row>
 
-      <Space style={{ marginBottom: 12 }}>
+      <Space wrap style={{ marginBottom: 12 }}>
         <span>Фильтр:</span>
         <Select allowClear placeholder='Все статусы' style={{ width: 220 }} onChange={setStatusFilter}>
           {statusOptions.map((s) => (
@@ -240,18 +244,18 @@ const Orders = () => {
         </Button>
       </Space>
 
-      <Table rowKey='id' loading={loading} columns={columns} dataSource={orders} />
+      <Table rowKey='id' loading={loading} columns={columns} dataSource={orders} scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: false }} />
 
       <Modal
         title={`Заявка №${selectedOrder?.id || ''}`}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={null}
-        width={1000}
+        width={isMobile ? '100%' : 1000}
       >
         {selectedOrder && (
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
               <h3>Клиент</h3>
               <p>
                 <UserOutlined /> {selectedOrder.full_name || 'Без имени'}
@@ -272,7 +276,7 @@ const Orders = () => {
               ))}
             </Col>
 
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <h3>Файлы клиента</h3>
               {(files || []).map((f) => {
                 const fileName = f.original_name || f.file_name || 'Файл';

@@ -66,6 +66,8 @@ TEXT_KEYS: list[str] = [
 PHOTO_KEYS: list[str] = [
     "photo_main_menu",
     "photo_print",
+    "photo_print_fdm",
+    "photo_print_resin",
     "photo_scan",
     "photo_idea",
     "photo_about",

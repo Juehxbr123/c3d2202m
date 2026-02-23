@@ -328,3 +328,8 @@ def list_order_files(order_id: int) -> list[dict[str, Any]]:
                 (order_id,),
             )
         return [dict(r) for r in cur.fetchall()]
+
+
+def delete_order_files(order_id: int) -> None:
+    with db_cursor() as (_, cur):
+        cur.execute("DELETE FROM order_files WHERE order_id=%s", (order_id,))
