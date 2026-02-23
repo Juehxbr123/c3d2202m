@@ -261,6 +261,7 @@ def payload_summary(payload: dict[str, Any]) -> str:
 def review_keyboard() -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text="➕ Добавить описание", callback_data="review:add_description")],
+        [InlineKeyboardButton(text="🖼 Заменить фото", callback_data="review:replace_file")],
         [InlineKeyboardButton(text="✅ Отправить заявку", callback_data="review:send")],
         nav_row(),
     ]
@@ -393,12 +394,15 @@ async def render_step(cb: CallbackQuery, state: FSMContext, step: str, from_back
     if step == "attach_file":
         is_idea_branch = str(payload.get("branch", "")) == "idea"
         rows = [nav_row()]
-        if not is_idea_branch:
+        default_text = "Прикрепите STL/3MF/OBJ или фото. Или нажмите кнопку ниже:"
+
+        if is_idea_branch:
+            rows.insert(0, [InlineKeyboardButton(text="⏭ Пропустить фото", callback_data="set:file:нет")])
+            default_text = "Прикрепите фото или эскиз для заявки. Или нажмите «Пропустить фото»."
+        else:
             rows.insert(0, [InlineKeyboardButton(text="❌ У меня нет файла", callback_data="set:file:нет")])
 
-        default_text = "Прикрепите STL/3MF/OBJ или фото. Или нажмите кнопку ниже:"
-        if is_idea_branch:
-            default_text = "Прикрепите фото или эскиз для заявки. Без фото отправить не получится."
+
         await send_step_cb(
             cb,
             get_cfg("text_attach_file", default_text),
@@ -722,6 +726,9 @@ async def on_set(cb: CallbackQuery, state: FSMContext) -> None:
     await persist(state)
 
     if field == "technology":
+        if value == "Не знаю":
+            await render_step(cb, state, "attach_file")
+            return
         await render_step(cb, state, "print_material")
         return
 
@@ -830,7 +837,6 @@ async def on_file(message: Message, state: FSMContext) -> None:
     await state.update_data(payload=payload, pending_files=pending_files)
     await persist(state)
 
-    await forward_file_to_orders_chat(message, order_id)
 
     fake_cb = CallbackQuery(id="0", from_user=message.from_user, chat_instance="0", message=message, data="")
     await render_step(fake_cb, state, "review")
@@ -840,6 +846,20 @@ async def on_review(cb: CallbackQuery, state: FSMContext) -> None:
     action = (cb.data or "").split(":", 1)[1] if cb.data else ""
     if action == "add_description":
         await render_step(cb, state, "description")
+        return
+    if action == "replace_file":
+        data = await state.get_data()
+        order_id = int(data.get("order_id", 0) or 0)
+        payload: dict[str, Any] = data.get("payload", {})
+        payload.pop("file", None)
+        await state.update_data(payload=payload, pending_files=[])
+        if order_id:
+            try:
+                database.delete_order_files(order_id)
+            except Exception:
+                logger.exception("Не удалось удалить старые файлы заявки")
+        await persist(state)
+        await render_step(cb, state, "attach_file")
         return
     if action == "send":
         if cb.message:
